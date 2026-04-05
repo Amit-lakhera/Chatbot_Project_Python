@@ -31,7 +31,7 @@ if "user" not in st.session_state:
 # ---------------- LOAD MODEL ---------------- #
 @st.cache_resource
 def load_model():
-    return pipeline("text2text-generation", model="google/flan-t5-small")
+    return pipeline("text-generation", model="distilgpt2")
 
 chatbot = load_model()
 
