@@ -1,5 +1,6 @@
 import streamlit as st
 from transformers import pipeline
+import torch
 import json
 import requests
 from datetime import datetime
@@ -33,7 +34,8 @@ if "user" not in st.session_state:
 def load_model():
     return pipeline(
         "text-generation",
-        model="distilgpt2"
+        model="distilgpt2",
+        device=-1  # force CPU (important for Streamlit Cloud)
     )
 
 chatbot = load_model()
