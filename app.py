@@ -1,5 +1,5 @@
 import streamlit as st
-from transformers import pipeline
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
 
 # Title
 st.title("🤖 AI Chatbot")
@@ -7,9 +7,12 @@ st.title("🤖 AI Chatbot")
 # Load model
 @st.cache_resource
 def load_model():
-    return pipeline("text2text-generation", model="google/flan-t5-small")
-
-chatbot = load_model()
+    model_name = "google/flan-t5-small"
+    
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+    
+    return pipeline("text2text-generation", model=model, tokenizer=tokenizer)
 
 # Greeting function
 def get_greeting_response(user_input):
