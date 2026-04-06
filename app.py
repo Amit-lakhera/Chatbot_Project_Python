@@ -12,7 +12,7 @@ def load_model():
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
     
-    return pipeline("text2text-generation", model=model, tokenizer=tokenizer)
+    return pipeline("text2text-generation", model="t5-small")
 
 # Greeting function
 def get_greeting_response(user_input):
