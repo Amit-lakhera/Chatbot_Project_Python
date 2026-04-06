@@ -3,13 +3,14 @@ from transformers import pipeline
 
 st.title("🤖 AI Chatbot")
 
+# Load model safely
 @st.cache_resource
 def load_model():
-    return pipeline("text2text-generation", model="t5-small")
+    return pipeline("text-generation", model="distilgpt2")
 
 chatbot = load_model()
 
-# Greeting
+# Greeting system
 def get_greeting_response(user_input):
     greetings = ["hi", "hello", "hey"]
     if user_input.lower() in greetings:
@@ -32,12 +33,14 @@ if user_input:
     with st.chat_message("user"):
         st.write(user_input)
 
+    # Greeting check
     response = get_greeting_response(user_input)
 
     if response is None:
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
-                response = chatbot(user_input, max_length=100)[0]["generated_text"]
+                result = chatbot(user_input, max_length=100, num_return_sequences=1)
+                response = result[0]["generated_text"]
                 st.write(response)
     else:
         with st.chat_message("assistant"):
