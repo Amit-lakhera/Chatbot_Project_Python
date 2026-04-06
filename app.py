@@ -1,11 +1,9 @@
 import streamlit as st
-from transformers import pipeline
-import torch
 import json
 import requests
 from datetime import datetime
 
-st.set_page_config(page_title="Premium AI Chatbot", layout="wide")
+st.set_page_config(page_title="AI Chatbot", layout="wide")
 
 # ---------------- LOGIN SYSTEM ---------------- #
 def load_users():
@@ -29,16 +27,32 @@ if "user" not in st.session_state:
     login()
     st.stop()
 
-# ---------------- LOAD MODEL ---------------- #
+# ---------------- LOAD FLAN-T5 MODEL ---------------- #
 @st.cache_resource
 def load_model():
-    return pipeline(
-        "text-generation",
-        model="distilgpt2",
-        device=-1  # force CPU (important for Streamlit Cloud)
+    from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+
+    model_name = "google/flan-t5-small"
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+
+    return tokenizer, model
+
+tokenizer, model = load_model()
+
+# ---------------- RESPONSE FUNCTION ---------------- #
+def generate_response(prompt):
+    inputs = tokenizer(prompt, return_tensors="pt", truncation=True)
+
+    outputs = model.generate(
+        **inputs,
+        max_new_tokens=120,
+        temperature=0.7,
+        do_sample=True
     )
 
-chatbot = load_model()
+    return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 # ---------------- MEMORY ---------------- #
 if "messages" not in st.session_state:
@@ -59,14 +73,24 @@ def search_web(query):
 # ---------------- PROMPT BUILDER ---------------- #
 def build_prompt(messages, user_input):
     context = ""
+
     for msg in messages[-5:]:
-        role = "User" if msg["role"] == "user" else "Assistant"
-        context += f"{role}: {msg['content']}\n"
-    context += f"User: {user_input}\nAssistant:"
-    return context
+        if msg["role"] == "user":
+            context += f"User: {msg['content']}\n"
+        else:
+            context += f"Assistant: {msg['content']}\n"
+
+    prompt = f"""
+You are a helpful AI assistant. Answer clearly and briefly.
+
+{context}
+User: {user_input}
+Assistant:
+"""
+    return prompt
 
 # ---------------- UI ---------------- #
-st.title(f"🤖 Premium Chatbot | Welcome {st.session_state.user}")
+st.title(f"🤖 AI Chatbot | Welcome {st.session_state.user}")
 
 menu = st.sidebar.selectbox("Menu", ["Chat", "Dashboard"])
 
@@ -84,7 +108,7 @@ if menu == "Chat":
         with st.chat_message("user"):
             st.write(user_input)
 
-        # Internet enhancement
+        # Internet context
         if use_internet:
             web_data = search_web(user_input)
             if web_data:
@@ -93,23 +117,16 @@ if menu == "Chat":
         prompt = build_prompt(st.session_state.messages, user_input)
 
         with st.spinner("Thinking..."):
-            response = chatbot(
-                prompt,
-                max_length=150,
-                do_sample=True,
-                temperature=0.7
-            )
-
-        bot_reply = response[0]["generated_text"]
+            bot_reply = generate_response(prompt)
 
         with st.chat_message("assistant"):
             st.write(bot_reply)
 
-        # Save chat
+        # Save memory
         st.session_state.messages.append({"role": "user", "content": user_input})
         st.session_state.messages.append({"role": "assistant", "content": bot_reply})
 
-        # Logs for dashboard
+        # Logs
         st.session_state.chat_logs.append({
             "user": st.session_state.user,
             "query": user_input,
