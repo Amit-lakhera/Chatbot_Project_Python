@@ -85,7 +85,7 @@ def get_wikipedia(query):
         return "❌ Unable to fetch information."
 
 # -------------------------
-# 🌐 SEARCH FUNCTION (UI READY)
+# 🌐 SEARCH FUNCTION
 # -------------------------
 def search_web(query):
     try:
@@ -133,13 +133,13 @@ def chatbot_response(user_input):
             return "Please specify a city. Example: weather in Delhi"
         return get_weather(city)
 
-    # Web Search
-    if "search" in text or "google" in text:
-        query = user_input.replace("search", "").replace("google", "")
-        return search_web(query)
+    # Wikipedia first
+    wiki_result = get_wikipedia(user_input)
+    if "❌" not in wiki_result and "⚠️" not in wiki_result:
+        return wiki_result
 
-    # Wikipedia fallback
-    return get_wikipedia(user_input)
+    # 🌐 Auto Search fallback
+    return search_web(user_input)
 
 # -------------------------
 # CHAT UI
@@ -147,7 +147,7 @@ def chatbot_response(user_input):
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Show chat
+# Show chat history
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
@@ -161,13 +161,15 @@ if user_input:
     with st.chat_message("user"):
         st.write(user_input)
 
-    response = chatbot_response(user_input)
-
     with st.chat_message("assistant"):
 
-        # 🌐 Premium Search UI
+        with st.spinner("🤔 Thinking..."):
+            response = chatbot_response(user_input)
+
+        # 🌐 Search UI
         if isinstance(response, list):
             st.markdown("### 🌐 Top Search Results")
+            st.info("🔍 Searching the web...")
 
             for res in response:
                 st.markdown(f"""
@@ -178,6 +180,7 @@ if user_input:
                 st.markdown("---")
 
         else:
+            st.success("✅ Answer found")
             st.write(response)
 
     st.session_state.messages.append({"role": "assistant", "content": str(response)})
