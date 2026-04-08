@@ -1,66 +1,137 @@
 import streamlit as st
 from datetime import datetime
 import pytz
+import requests
+import wikipedia
 
-st.title("🤖 Chatbot")
+st.set_page_config(page_title="Smart AI Chatbot", page_icon="🤖")
 
-# Indian Time Zone
+st.title("🤖 Smart AI Chatbot")
+
+# IST Timezone
 ist = pytz.timezone("Asia/Kolkata")
 
 # -------------------------
-# RESPONSE FUNCTION
+# EXTRACT CITY (SMART NLP)
 # -------------------------
+def extract_city(user_input):
+    text = user_input.lower()
 
+    remove_words = ["weather", "in", "of", "what", "is", "the", "tell", "me"]
+    words = text.split()
+
+    city_words = [word for word in words if word not in remove_words]
+    city = " ".join(city_words)
+
+    return city.strip()
+
+# -------------------------
+# GET COORDINATES
+# -------------------------
+def get_coordinates(city):
+    try:
+        url = f"https://geocoding-api.open-meteo.com/v1/search?name={city}&country=India"
+        data = requests.get(url).json()
+
+        lat = data["results"][0]["latitude"]
+        lon = data["results"][0]["longitude"]
+
+        return lat, lon
+    except:
+        return None, None
+
+# -------------------------
+# WEATHER FUNCTION
+# -------------------------
+def get_weather(city):
+    lat, lon = get_coordinates(city)
+
+    if lat is None:
+        return "❌ Location not found. Try a valid Indian city."
+
+    try:
+        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
+        data = requests.get(url).json()
+
+        temp = data["current_weather"]["temperature"]
+        wind = data["current_weather"]["windspeed"]
+
+        return f"🌦️ Weather in {city.title()}:\nTemperature: {temp}°C\nWind Speed: {wind} km/h"
+    except:
+        return "⚠️ Unable to fetch weather."
+
+# -------------------------
+# WIKIPEDIA FUNCTION
+# -------------------------
+def get_wikipedia(query):
+    try:
+        result = wikipedia.summary(query, sentences=2)
+        return f"📚 {result}"
+    except:
+        return "❌ Sorry, I couldn't find information."
+
+# -------------------------
+# MAIN RESPONSE FUNCTION
+# -------------------------
 def chatbot_response(user_input):
     text = user_input.lower()
 
     # Greeting
     if text in ["hi", "hello", "hey", "hii"]:
-        return "Hello 👋! I'm your chatbot. How can I help you today?"
+        return "Hello 👋! I'm your smart AI chatbot. Ask me about weather, date, time or anything!"
 
     # Thanks
     if "thank" in text:
-        return "You're welcome 😊! Happy to help. Have a great day!"
+        return "You're welcome 😊! Happy to help!"
 
-    # Get IST time
+    # Date & Time (IST)
     now = datetime.now(ist)
     current_time = now.strftime("%I:%M %p")
     current_date = now.strftime("%d-%m-%Y")
 
-    # Only time
     if "time" in text and "date" not in text:
         return f"⏰ Current Time (IST): {current_time}"
 
-    # Only date
     if "date" in text and "time" not in text:
         return f"📅 Today's Date: {current_date}"
 
-    # Both date & time
     if "date" in text and "time" in text:
         return f"📅 Date: {current_date}\n⏰ Time (IST): {current_time}"
 
-    # Default
-    return "I can respond to greetings, thanks, and date/time 😊"
+    # Smart Weather
+    if "weather" in text:
+        city = extract_city(user_input)
+
+        if city == "":
+            return "Please specify a city. Example: weather in Delhi"
+
+        return get_weather(city)
+
+    # Wikipedia fallback
+    return get_wikipedia(user_input)
 
 # -------------------------
-# CHAT SYSTEM
+# CHAT SYSTEM (UI)
 # -------------------------
-
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Display chat history
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
+# User input
 user_input = st.chat_input("Type your message...")
 
 if user_input:
+    # Show user message
     st.session_state.messages.append({"role": "user", "content": user_input})
 
     with st.chat_message("user"):
         st.write(user_input)
 
+    # Bot response
     response = chatbot_response(user_input)
 
     with st.chat_message("assistant"):
