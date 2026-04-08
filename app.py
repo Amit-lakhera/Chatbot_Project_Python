@@ -1,4 +1,5 @@
 import streamlit as st
+from datetime import datetime
 
 st.title("🤖 Chatbot")
 
@@ -9,16 +10,23 @@ st.title("🤖 Chatbot")
 def chatbot_response(user_input):
     text = user_input.lower()
 
-    # Greeting responses
+    # Greeting
     if text in ["hi", "hello", "hey", "hii"]:
         return "Hello 👋! I'm your chatbot. How can I help you today?"
 
-    # Thanks response
+    # Thanks
     if "thank" in text:
         return "You're welcome 😊! Happy to help. Have a great day!"
 
-    # Default response
-    return "I can respond to greetings and thanks for now 😊"
+    # Date and Time
+    if "time" in text or "date" in text:
+        now = datetime.now()
+        current_time = now.strftime("%I:%M %p")
+        current_date = now.strftime("%d-%m-%Y")
+        return f"📅 Current Date: {current_date}\n⏰ Current Time: {current_time}"
+
+    # Default
+    return "I can respond to greetings, thanks, and date/time 😊"
 
 # -------------------------
 # CHAT SYSTEM
@@ -27,12 +35,10 @@ def chatbot_response(user_input):
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Show previous messages
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# User input
 user_input = st.chat_input("Type your message...")
 
 if user_input:
