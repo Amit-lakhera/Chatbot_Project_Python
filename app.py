@@ -3,6 +3,7 @@ from datetime import datetime
 import pytz
 import requests
 import wikipedia
+from duckduckgo_search import DDGS
 
 st.set_page_config(page_title="Smart AI Chatbot", page_icon="🤖")
 st.title("🤖 Smart AI Chatbot")
@@ -15,14 +16,10 @@ ist = pytz.timezone("Asia/Kolkata")
 # -------------------------
 def extract_city(user_input):
     text = user_input.lower()
-
     remove_words = ["weather", "in", "of", "what", "is", "the", "tell", "me"]
     words = text.split()
-
     city_words = [word for word in words if word not in remove_words]
-    city = " ".join(city_words)
-
-    return city.strip()
+    return " ".join(city_words).strip()
 
 # -------------------------
 # WEATHER: GET COORDINATES
@@ -31,11 +28,7 @@ def get_coordinates(city):
     try:
         url = f"https://geocoding-api.open-meteo.com/v1/search?name={city}&country=India"
         data = requests.get(url).json()
-
-        lat = data["results"][0]["latitude"]
-        lon = data["results"][0]["longitude"]
-
-        return lat, lon
+        return data["results"][0]["latitude"], data["results"][0]["longitude"]
     except:
         return None, None
 
@@ -60,53 +53,50 @@ def get_weather(city):
         return "⚠️ Unable to fetch weather."
 
 # -------------------------
-# WIKIPEDIA: KEYWORD EXTRACTION
+# WIKIPEDIA SMART
 # -------------------------
 def extract_keywords(query):
-    stopwords = [
-        "what", "is", "the", "of", "in", "on", "tell", "me",
-        "about", "who", "was", "are", "were", "when"
-    ]
-
+    stopwords = ["what","is","the","of","in","on","tell","me","about","who","was","are","were","when"]
     words = query.lower().split()
     keywords = [word for word in words if word not in stopwords]
-
     return " ".join(keywords)
 
-# -------------------------
-# SMART WIKIPEDIA FUNCTION
-# -------------------------
 def get_wikipedia(query):
     try:
         keywords = extract_keywords(query)
+        results = wikipedia.search(keywords)
 
-        search_results = wikipedia.search(keywords)
-
-        if not search_results:
+        if not results:
             return "❌ No relevant information found."
 
-        page = wikipedia.page(search_results[0])
-        content = page.content
+        page = wikipedia.page(results[0])
+        paragraphs = page.content.split("\n")
 
-        paragraphs = content.split("\n")
-
-        # Find relevant paragraph
         for para in paragraphs:
             if any(word in para.lower() for word in keywords.split()):
                 if len(para) > 100:
                     return f"📚 {para[:400]}..."
 
-        # fallback
-        return f"📚 {wikipedia.summary(search_results[0], sentences=2)}"
+        return f"📚 {wikipedia.summary(results[0], sentences=2)}"
 
     except wikipedia.exceptions.DisambiguationError as e:
         return f"⚠️ Be more specific. Options: {', '.join(e.options[:5])}"
-
-    except wikipedia.exceptions.PageError:
-        return "❌ Page not found. Try another query."
-
     except:
-        return "❌ Unable to fetch information right now."
+        return "❌ Unable to fetch information."
+
+# -------------------------
+# 🌐 SEARCH FUNCTION (UI READY)
+# -------------------------
+def search_web(query):
+    try:
+        results = []
+        with DDGS() as ddgs:
+            for r in ddgs.text(query, max_results=5):
+                results.append(r)
+
+        return results if results else "❌ No results found."
+    except:
+        return "⚠️ Search not working."
 
 # -------------------------
 # MAIN RESPONSE FUNCTION
@@ -116,36 +106,39 @@ def chatbot_response(user_input):
 
     # Greeting
     if text in ["hi", "hello", "hey", "hii"]:
-        return "Hello 👋! I'm your smart AI chatbot. Ask me about weather, date, time or anything!"
+        return "Hello 👋! I'm your smart AI chatbot. Ask me anything!"
 
     # Thanks
     if "thank" in text:
-        return "You're welcome 😊! Happy to help!"
+        return "You're welcome 😊!"
 
-    # Date & Time (IST)
+    # Date & Time
     now = datetime.now(ist)
     current_time = now.strftime("%I:%M %p")
     current_date = now.strftime("%d-%m-%Y")
 
     if "time" in text and "date" not in text:
-        return f"⏰ Current Time (IST): {current_time}"
+        return f"⏰ Time (IST): {current_time}"
 
     if "date" in text and "time" not in text:
-        return f"📅 Today's Date: {current_date}"
+        return f"📅 Date: {current_date}"
 
     if "date" in text and "time" in text:
-        return f"📅 Date: {current_date}\n⏰ Time (IST): {current_time}"
+        return f"📅 Date: {current_date}\n⏰ Time: {current_time}"
 
     # Weather
     if "weather" in text:
         city = extract_city(user_input)
-
         if city == "":
             return "Please specify a city. Example: weather in Delhi"
-
         return get_weather(city)
 
-    # Wikipedia fallback (smart)
+    # Web Search
+    if "search" in text or "google" in text:
+        query = user_input.replace("search", "").replace("google", "")
+        return search_web(query)
+
+    # Wikipedia fallback
     return get_wikipedia(user_input)
 
 # -------------------------
@@ -154,7 +147,7 @@ def chatbot_response(user_input):
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Show chat history
+# Show chat
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
@@ -171,6 +164,20 @@ if user_input:
     response = chatbot_response(user_input)
 
     with st.chat_message("assistant"):
-        st.write(response)
 
-    st.session_state.messages.append({"role": "assistant", "content": response})
+        # 🌐 Premium Search UI
+        if isinstance(response, list):
+            st.markdown("### 🌐 Top Search Results")
+
+            for res in response:
+                st.markdown(f"""
+                🔹 **{res['title']}**  
+                {res.get('body', '')}  
+                [Read more]({res['href']})
+                """)
+                st.markdown("---")
+
+        else:
+            st.write(response)
+
+    st.session_state.messages.append({"role": "assistant", "content": str(response)})
