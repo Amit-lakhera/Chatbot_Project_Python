@@ -53,7 +53,7 @@ def get_weather(city):
         return "⚠️ Unable to fetch weather."
 
 # -------------------------
-# WIKIPEDIA SMART
+# WIKIPEDIA SMART (UPDATED)
 # -------------------------
 def extract_keywords(query):
     stopwords = ["what","is","the","of","in","on","tell","me","about","who","was","are","were","when"]
@@ -70,14 +70,13 @@ def get_wikipedia(query):
             return "❌ No relevant information found."
 
         page = wikipedia.page(results[0])
-        paragraphs = page.content.split("\n")
 
-        for para in paragraphs:
-            if any(word in para.lower() for word in keywords.split()):
-                if len(para) > 100:
-                    return f"📚 {para[:400]}..."
+        # ✅ Smart detection: long or detailed query
+        if "detail" in query.lower() or "explain" in query.lower() or len(query.split()) > 6:
+            return f"📚 {page.content[:1500]}"
 
-        return f"📚 {wikipedia.summary(results[0], sentences=2)}"
+        # ✅ Normal short answer
+        return f"📚 {wikipedia.summary(results[0], sentences=4)}"
 
     except wikipedia.exceptions.DisambiguationError as e:
         return f"⚠️ Be more specific. Options: {', '.join(e.options[:5])}"
