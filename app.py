@@ -5,14 +5,13 @@ import requests
 import wikipedia
 
 st.set_page_config(page_title="Smart AI Chatbot", page_icon="🤖")
-
 st.title("🤖 Smart AI Chatbot")
 
 # IST Timezone
 ist = pytz.timezone("Asia/Kolkata")
 
 # -------------------------
-# EXTRACT CITY (SMART NLP)
+# WEATHER: EXTRACT CITY
 # -------------------------
 def extract_city(user_input):
     text = user_input.lower()
@@ -26,7 +25,7 @@ def extract_city(user_input):
     return city.strip()
 
 # -------------------------
-# GET COORDINATES
+# WEATHER: GET COORDINATES
 # -------------------------
 def get_coordinates(city):
     try:
@@ -61,14 +60,53 @@ def get_weather(city):
         return "⚠️ Unable to fetch weather."
 
 # -------------------------
-# WIKIPEDIA FUNCTION
+# WIKIPEDIA: KEYWORD EXTRACTION
+# -------------------------
+def extract_keywords(query):
+    stopwords = [
+        "what", "is", "the", "of", "in", "on", "tell", "me",
+        "about", "who", "was", "are", "were", "when"
+    ]
+
+    words = query.lower().split()
+    keywords = [word for word in words if word not in stopwords]
+
+    return " ".join(keywords)
+
+# -------------------------
+# SMART WIKIPEDIA FUNCTION
 # -------------------------
 def get_wikipedia(query):
     try:
-        result = wikipedia.summary(query, sentences=2)
-        return f"📚 {result}"
+        keywords = extract_keywords(query)
+
+        search_results = wikipedia.search(keywords)
+
+        if not search_results:
+            return "❌ No relevant information found."
+
+        page = wikipedia.page(search_results[0])
+        content = page.content
+
+        paragraphs = content.split("\n")
+
+        # Find relevant paragraph
+        for para in paragraphs:
+            if any(word in para.lower() for word in keywords.split()):
+                if len(para) > 100:
+                    return f"📚 {para[:400]}..."
+
+        # fallback
+        return f"📚 {wikipedia.summary(search_results[0], sentences=2)}"
+
+    except wikipedia.exceptions.DisambiguationError as e:
+        return f"⚠️ Be more specific. Options: {', '.join(e.options[:5])}"
+
+    except wikipedia.exceptions.PageError:
+        return "❌ Page not found. Try another query."
+
     except:
-        return "❌ Sorry, I couldn't find information."
+        return "❌ Unable to fetch information right now."
 
 # -------------------------
 # MAIN RESPONSE FUNCTION
@@ -98,7 +136,7 @@ def chatbot_response(user_input):
     if "date" in text and "time" in text:
         return f"📅 Date: {current_date}\n⏰ Time (IST): {current_time}"
 
-    # Smart Weather
+    # Weather
     if "weather" in text:
         city = extract_city(user_input)
 
@@ -107,31 +145,29 @@ def chatbot_response(user_input):
 
         return get_weather(city)
 
-    # Wikipedia fallback
+    # Wikipedia fallback (smart)
     return get_wikipedia(user_input)
 
 # -------------------------
-# CHAT SYSTEM (UI)
+# CHAT UI
 # -------------------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat history
+# Show chat history
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# User input
+# Input
 user_input = st.chat_input("Type your message...")
 
 if user_input:
-    # Show user message
     st.session_state.messages.append({"role": "user", "content": user_input})
 
     with st.chat_message("user"):
         st.write(user_input)
 
-    # Bot response
     response = chatbot_response(user_input)
 
     with st.chat_message("assistant"):
