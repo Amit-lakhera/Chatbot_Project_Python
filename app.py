@@ -214,5 +214,6 @@ if user_input:
 
     st.session_state.messages.append({"role": "assistant", "content": str(response)})
 
-# Calendar UI at bottom
-show_calendar()
+# Calendar UI removed (can be added later via a button if needed)
+# if st.button("Show Festival Calendar"):
+#     show_calendar()
