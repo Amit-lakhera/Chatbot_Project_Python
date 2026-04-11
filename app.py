@@ -93,10 +93,33 @@ def search_web(query):
         return None
 
 # -------------------------
+# 🌍 DIRECT FACT ANSWERS (CRITICAL FIX)
+# -------------------------
+def get_direct_answer(user_input):
+    text = user_input.lower()
+
+    # Prime Ministers (most common failure fix)
+    if "pm of india" in text or "prime minister of india" in text:
+        return "🇮🇳 The Prime Minister of India is Narendra Modi."
+
+    if "pm of australia" in text or "prime minister of australia" in text:
+        return "🇦🇺 The Prime Minister of Australia is Anthony Albanese."
+
+    if "president of india" in text:
+        return "🇮🇳 The President of India is Droupadi Murmu."
+
+    return None
+
+# -------------------------
 # MAIN RESPONSE FUNCTION (ADVANCED)
 # -------------------------
 def chatbot_response(user_input):
     text = user_input.lower()
+
+    # Direct Answers (Top Priority)
+    direct = get_direct_answer(user_input)
+    if direct:
+        return direct
 
     # Greeting
     if text in ["hi", "hello", "hey", "hii"]:
@@ -168,3 +191,4 @@ if user_input:
             st.write(response)
 
     st.session_state.messages.append({"role": "assistant", "content": str(response)})
+    
