@@ -13,27 +13,42 @@ ist = pytz.timezone("Asia/Kolkata")
 # -------------------------
 # 🌍 SMART LEADER FETCH (PM / PRESIDENT / CM)
 # -------------------------
+def extract_name_from_summary(summary):
+    try:
+        # Extract name before 'is' or ','
+        if " is " in summary:
+            return summary.split(" is ")[0]
+        return summary.split(",")[0]
+    except:
+        return summary
+
+
 def get_leader_info(user_input):
     text = user_input.lower()
 
     try:
         if any(x in text for x in ["prime minister", "pm of"]):
             country = text.split("of")[-1].strip()
-            result = wikipedia.summary(f"Prime Minister of {country}", sentences=1)
-            return f"🌍 {result}"
+            summary = wikipedia.summary(f"Prime Minister of {country}", sentences=1)
+            name = extract_name_from_summary(summary)
+            return f"🌍 Prime Minister of {country.title()} is {name}."
 
         if "president" in text:
             country = text.split("of")[-1].strip()
-            result = wikipedia.summary(f"President of {country}", sentences=1)
-            return f"🌍 {result}"
+            summary = wikipedia.summary(f"President of {country}", sentences=1)
+            name = extract_name_from_summary(summary)
+            return f"🌍 President of {country.title()} is {name}."
 
         if "chief minister" in text or "cm of" in text:
             state = text.split("of")[-1].strip()
-            result = wikipedia.summary(f"Chief Minister of {state}", sentences=1)
-            return f"🏛️ {result}"
+            summary = wikipedia.summary(f"Chief Minister of {state}", sentences=1)
+            name = extract_name_from_summary(summary)
+            return f"🏛️ Chief Minister of {state.title()} is {name}."
 
     except:
         return None
+
+    return None
 
     return None
 
@@ -179,3 +194,4 @@ if user_input:
             st.write(response)
 
     st.session_state.messages.append({"role": "assistant", "content": str(response)})
+    
