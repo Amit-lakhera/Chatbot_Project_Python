@@ -5,163 +5,151 @@ import requests
 import wikipedia
 from duckduckgo_search import DDGS
 
-st.set_page_config(page_title="Smart AI Chatbot", page_icon="🤖")
-st.title("🤖 Smart AI Chatbot (Advanced)")
+st.set_page_config(page_title="Ultimate AI Assistant", page_icon="🤖")
+st.title("🤖 Ultimate AI Assistant")
 
-# IST Timezone
 ist = pytz.timezone("Asia/Kolkata")
 
 # -------------------------
-# WEATHER FUNCTIONS
+# 🌍 SMART LEADER FETCH (PM / PRESIDENT / CM)
 # -------------------------
-def extract_city(user_input):
+def get_leader_info(user_input):
     text = user_input.lower()
-    remove_words = ["weather", "in", "of", "what", "is", "the", "tell", "me"]
-    return " ".join([w for w in text.split() if w not in remove_words])
 
-
-def get_coordinates(city):
     try:
-        url = f"https://geocoding-api.open-meteo.com/v1/search?name={city}&country=India"
-        data = requests.get(url).json()
-        return data["results"][0]["latitude"], data["results"][0]["longitude"]
+        if any(x in text for x in ["prime minister", "pm of"]):
+            country = text.split("of")[-1].strip()
+            result = wikipedia.summary(f"Prime Minister of {country}", sentences=1)
+            return f"🌍 {result}"
+
+        if "president" in text:
+            country = text.split("of")[-1].strip()
+            result = wikipedia.summary(f"President of {country}", sentences=1)
+            return f"🌍 {result}"
+
+        if "chief minister" in text or "cm of" in text:
+            state = text.split("of")[-1].strip()
+            result = wikipedia.summary(f"Chief Minister of {state}", sentences=1)
+            return f"🏛️ {result}"
+
     except:
-        return None, None
+        return None
 
-
-def get_weather(city):
-    lat, lon = get_coordinates(city)
-    if lat is None:
-        return "❌ Location not found"
-
-    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
-    data = requests.get(url).json()
-
-    temp = data["current_weather"]["temperature"]
-    wind = data["current_weather"]["windspeed"]
-
-    return f"🌦️ Weather in {city.title()}: {temp}°C, Wind {wind} km/h"
+    return None
 
 # -------------------------
-# SMART FESTIVAL INFO
+# 🎉 FESTIVAL INFO
 # -------------------------
 def get_festival_info(user_input):
     text = user_input.lower()
 
     if "diwali" in text:
         if "why" in text:
-            return "🪔 Diwali is celebrated to mark Lord Rama's return to Ayodhya after defeating Ravana. It represents victory of light over darkness."
+            return "🪔 Diwali marks Lord Rama’s return to Ayodhya and symbolizes victory of light over darkness."
         if "when" in text:
             return "🎉 Diwali 2026 is on 8 November 2026"
 
     if "holi" in text:
         if "why" in text:
-            return "🌈 Holi celebrates the victory of Prahlad over Holika and the arrival of spring."
+            return "🌈 Holi celebrates victory of Prahlad and arrival of spring."
         if "when" in text:
             return "🎉 Holi 2026 is on 3 March 2026"
 
     return None
 
 # -------------------------
-# SMART WIKIPEDIA
+# 🌦 WEATHER
+# -------------------------
+def extract_city(text):
+    remove = ["weather", "in", "of", "what", "is", "the"]
+    return " ".join([w for w in text.lower().split() if w not in remove])
+
+
+def get_weather(city):
+    try:
+        geo = requests.get(f"https://geocoding-api.open-meteo.com/v1/search?name={city}&country=India").json()
+        lat = geo["results"][0]["latitude"]
+        lon = geo["results"][0]["longitude"]
+
+        data = requests.get(f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true").json()
+
+        temp = data["current_weather"]["temperature"]
+        wind = data["current_weather"]["windspeed"]
+
+        return f"🌦️ {city.title()}: {temp}°C, Wind {wind} km/h"
+    except:
+        return "❌ Weather not found"
+
+# -------------------------
+# 📚 WIKIPEDIA
 # -------------------------
 def get_wikipedia(query):
     try:
-        results = wikipedia.search(query)
-        if not results:
-            return None
-
-        page = wikipedia.page(results[0])
-        return wikipedia.summary(results[0], sentences=4)
-
-    except wikipedia.exceptions.DisambiguationError as e:
-        return wikipedia.summary(e.options[0], sentences=2)
+        return wikipedia.summary(query, sentences=3)
     except:
         return None
 
 # -------------------------
-# WEB SEARCH
+# 🌐 SEARCH
 # -------------------------
 def search_web(query):
     try:
-        results = []
         with DDGS() as ddgs:
-            for r in ddgs.text(query, max_results=5):
-                results.append(r)
-        return results
+            return list(ddgs.text(query, max_results=3))
     except:
         return None
 
 # -------------------------
-# 🌍 DIRECT FACT ANSWERS (CRITICAL FIX)
-# -------------------------
-def get_direct_answer(user_input):
-    text = user_input.lower()
-
-    # Prime Ministers (most common failure fix)
-    if "pm of india" in text or "prime minister of india" in text:
-        return "🇮🇳 The Prime Minister of India is Narendra Modi."
-
-    if "pm of australia" in text or "prime minister of australia" in text:
-        return "🇦🇺 The Prime Minister of Australia is Anthony Albanese."
-
-    if "president of india" in text:
-        return "🇮🇳 The President of India is Droupadi Murmu."
-
-    return None
-
-# -------------------------
-# MAIN RESPONSE FUNCTION (ADVANCED)
+# 🧠 MAIN RESPONSE ENGINE
 # -------------------------
 def chatbot_response(user_input):
     text = user_input.lower()
 
-    # Direct Answers (Top Priority)
-    direct = get_direct_answer(user_input)
-    if direct:
-        return direct
-
-    # Greeting
-    if text in ["hi", "hello", "hey", "hii"]:
-        return "Hello 👋! I'm your smart AI chatbot. Ask me anything!"
+    # Greetings
+    if text in ["hi", "hello", "hey"]:
+        return "Hello 👋! I'm your Ultimate AI Assistant."
 
     # Thanks
     if "thank" in text:
-        return "You're welcome 😊!"
+        return "You're welcome 😊"
 
-    # Date & Time
+    # Time & Date
     now = datetime.now(ist)
-    if "time" in text and "date" not in text:
-        return f"⏰ {now.strftime('%I:%M %p')}"
+    if "time" in text:
+        return now.strftime("⏰ %I:%M %p")
 
-    if "date" in text and "time" not in text:
-        return f"📅 {now.strftime('%d-%m-%Y')}"
+    if "date" in text:
+        return now.strftime("📅 %d-%m-%Y")
 
-    if "date" in text and "time" in text:
-        return f"📅 {now.strftime('%d-%m-%Y')} | ⏰ {now.strftime('%I:%M %p')}"
+    # Leaders (TOP PRIORITY)
+    leader = get_leader_info(user_input)
+    if leader:
+        return leader
 
     # Weather
     if "weather" in text:
         city = extract_city(user_input)
-        if city == "":
-            return "Please specify a city"
         return get_weather(city)
 
-    # Festival (smart handling)
+    # Festival
     fest = get_festival_info(user_input)
     if fest:
         return fest
 
-    # Wikipedia (MAIN KNOWLEDGE ENGINE)
+    # Wikipedia
     wiki = get_wikipedia(user_input)
     if wiki:
         return wiki
 
-    # Web fallback
-    return search_web(user_input)
+    # Web search
+    web = search_web(user_input)
+    if web:
+        return web
+
+    return "🤖 Sorry, I couldn't understand."
 
 # -------------------------
-# CHAT UI
+# 💬 CHAT UI
 # -------------------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -170,7 +158,7 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-user_input = st.chat_input("Type your message...")
+user_input = st.chat_input("Ask anything...")
 
 if user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
@@ -183,12 +171,11 @@ if user_input:
             response = chatbot_response(user_input)
 
         if isinstance(response, list):
-            st.markdown("### 🌐 Top Search Results")
-            for res in response:
-                st.markdown(f"**{res['title']}**\n{res.get('body','')}\n[Read more]({res['href']})")
+            st.markdown("### 🌐 Results")
+            for r in response:
+                st.markdown(f"**{r['title']}**\n{r.get('body','')}\n[Read more]({r['href']})")
                 st.markdown("---")
         else:
             st.write(response)
 
     st.session_state.messages.append({"role": "assistant", "content": str(response)})
-    
