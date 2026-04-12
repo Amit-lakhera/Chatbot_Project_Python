@@ -11,13 +11,14 @@ st.title("🤖 Ultimate AI Assistant")
 ist = pytz.timezone("Asia/Kolkata")
 
 # -------------------------
-# 🌍 LEADER FUNCTION (FINAL FIX)
+# 🌍 LEADER DETECTION (FINAL PERFECT)
 # -------------------------
 def get_leader_info(user_input):
     text = user_input.lower().strip()
 
     try:
         text = text.replace("who is", "").replace("tell me", "").strip()
+        words = text.split()
 
         country_map = {
             "uk": "united kingdom",
@@ -26,47 +27,43 @@ def get_leader_info(user_input):
             "uae": "united arab emirates"
         }
 
-        # PM
+        ignore_words = ["pm", "prime", "minister", "president", "of"]
+
+        # Extract country
+        country = None
+        for word in words:
+            if word not in ignore_words:
+                country = country_map.get(word, word)
+                break
+
+        if not country:
+            return None
+
+        # Get correct summary
         if "pm" in text or "prime minister" in text:
-            if "of" in text:
-                country = text.split("of")[-1].strip()
-            else:
-                country = text.split()[-1]
-
-            country = country_map.get(country, country)
-
             summary = wikipedia.summary(f"Prime Minister of {country}", sentences=1)
-
-            if " is " in summary:
-                name = summary.split(" is ")[0]
-            else:
-                name = summary.split(",")[0]
-
-            return f"🌍 Prime Minister of {country.title()} is {name}"
-
-        # President
-        if "president" in text:
-            if "of" in text:
-                country = text.split("of")[-1].strip()
-            else:
-                country = text.split()[-1]
-
-            country = country_map.get(country, country)
-
+            role = "Prime Minister"
+        elif "president" in text:
             summary = wikipedia.summary(f"President of {country}", sentences=1)
+            role = "President"
+        else:
+            return None
 
-            if " is " in summary:
-                name = summary.split(" is ")[0]
-            else:
-                name = summary.split(",")[0]
+        # Extract name
+        if " is " in summary:
+            name = summary.split(" is ")[0]
+        else:
+            name = summary.split(",")[0]
 
-            return f"🌍 President of {country.title()} is {name}"
+        # Fix bad outputs
+        if "prime minister" in name.lower() or "president" in name.lower():
+            name = " ".join(summary.split()[-2:])
+
+        return f"🌍 {role} of {country.title()} is {name}"
 
     except Exception as e:
         print("Leader Error:", e)
         return None
-
-    return None
 
 
 # -------------------------
@@ -136,12 +133,12 @@ def search_web(query):
 
 
 # -------------------------
-# 🧠 MAIN CHATBOT (IMPORTANT ORDER)
+# 🧠 MAIN CHATBOT
 # -------------------------
 def chatbot_response(user_input):
     text = user_input.lower()
 
-    # 🔥 TOP PRIORITY (VERY IMPORTANT)
+    # 🔥 TOP PRIORITY (LEADER FIX)
     leader = get_leader_info(user_input)
     if leader:
         return leader
