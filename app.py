@@ -11,13 +11,23 @@ st.title("🤖 Ultimate AI Assistant")
 ist = pytz.timezone("Asia/Kolkata")
 
 # -------------------------
-# 🌍 LEADER DETECTION (FINAL PERFECT)
+# 🧠 SMART LEADER SYSTEM (NO HARDCODING)
 # -------------------------
 def get_leader_info(user_input):
     text = user_input.lower().strip()
 
     try:
-        text = text.replace("who is", "").replace("tell me", "").strip()
+        # Detect if query is about a PERSON (like Modi)
+        if "who is" in text:
+            query = user_input.replace("who is", "").strip()
+            summary = wikipedia.summary(query, sentences=1)
+
+            # If it's a person page → return directly
+            if "(" in summary or "born" in summary.lower():
+                name = summary.split(" is ")[0]
+                return f"👤 {name}"
+
+        # Otherwise treat as COUNTRY query
         words = text.split()
 
         country_map = {
@@ -27,9 +37,8 @@ def get_leader_info(user_input):
             "uae": "united arab emirates"
         }
 
-        ignore_words = ["pm", "prime", "minister", "president", "of"]
+        ignore_words = ["pm", "prime", "minister", "president", "of", "who", "is"]
 
-        # Extract country
         country = None
         for word in words:
             if word not in ignore_words:
@@ -39,23 +48,26 @@ def get_leader_info(user_input):
         if not country:
             return None
 
-        # Get correct summary
+        # PM
         if "pm" in text or "prime minister" in text:
             summary = wikipedia.summary(f"Prime Minister of {country}", sentences=1)
             role = "Prime Minister"
+
+        # President
         elif "president" in text:
             summary = wikipedia.summary(f"President of {country}", sentences=1)
             role = "President"
+
         else:
             return None
 
-        # Extract name
+        # Extract only name
         if " is " in summary:
             name = summary.split(" is ")[0]
         else:
             name = summary.split(",")[0]
 
-        # Fix bad outputs
+        # Clean fallback
         if "prime minister" in name.lower() or "president" in name.lower():
             name = " ".join(summary.split()[-2:])
 
@@ -67,22 +79,22 @@ def get_leader_info(user_input):
 
 
 # -------------------------
-# 🎉 FESTIVAL
+# 🎉 FESTIVALS
 # -------------------------
 def get_festival_info(user_input):
     text = user_input.lower()
 
     if "diwali" in text:
-        if "why" in text:
-            return "🪔 Diwali celebrates the return of Lord Rama and victory of light over darkness."
         if "when" in text:
-            return "🎉 Diwali 2026 is on 8 November 2026"
+            return "🪔 Diwali 2026 is on 8 November 2026"
+        if "why" in text:
+            return "🪔 Diwali celebrates victory of light over darkness."
 
     if "holi" in text:
-        if "why" in text:
-            return "🌈 Holi celebrates Prahlad’s victory and arrival of spring."
         if "when" in text:
-            return "🎉 Holi 2026 is on 3 March 2026"
+            return "🌈 Holi 2026 is on 3 March 2026"
+        if "why" in text:
+            return "🌈 Holi celebrates the arrival of spring."
 
     return None
 
@@ -122,7 +134,7 @@ def get_wikipedia(query):
 
 
 # -------------------------
-# 🌐 SEARCH
+# 🌐 WEB SEARCH
 # -------------------------
 def search_web(query):
     try:
@@ -133,12 +145,12 @@ def search_web(query):
 
 
 # -------------------------
-# 🧠 MAIN CHATBOT
+# 🤖 MAIN CHATBOT
 # -------------------------
 def chatbot_response(user_input):
     text = user_input.lower()
 
-    # 🔥 TOP PRIORITY (LEADER FIX)
+    # 🔥 LEADER (TOP PRIORITY)
     leader = get_leader_info(user_input)
     if leader:
         return leader
@@ -151,11 +163,12 @@ def chatbot_response(user_input):
     if "thank" in text:
         return "You're welcome 😊"
 
-    # Time & Date
+    # Time
     now = datetime.now(ist)
     if "time" in text:
         return now.strftime("⏰ %I:%M %p")
 
+    # Date
     if "date" in text:
         return now.strftime("📅 %d-%m-%Y")
 
@@ -183,7 +196,7 @@ def chatbot_response(user_input):
 
 
 # -------------------------
-# 💬 UI
+# 💬 STREAMLIT UI
 # -------------------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
