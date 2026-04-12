@@ -11,14 +11,13 @@ st.title("🤖 Ultimate AI Assistant")
 ist = pytz.timezone("Asia/Kolkata")
 
 # -------------------------
-# 🌍 INTELLIGENT LEADER DETECTION
+# 🌍 LEADER FUNCTION (FINAL FIX)
 # -------------------------
 def get_leader_info(user_input):
-    text = user_input.lower()
+    text = user_input.lower().strip()
 
     try:
         text = text.replace("who is", "").replace("tell me", "").strip()
-        words = text.split()
 
         country_map = {
             "uk": "united kingdom",
@@ -27,52 +26,64 @@ def get_leader_info(user_input):
             "uae": "united arab emirates"
         }
 
-        def clean_country(word):
-            return country_map.get(word, word)
+        # PM
+        if "pm" in text or "prime minister" in text:
+            if "of" in text:
+                country = text.split("of")[-1].strip()
+            else:
+                country = text.split()[-1]
 
-        # PM Detection
-        if "pm" in words or "prime" in words:
-            for word in words:
-                if word not in ["pm", "prime", "minister", "of"]:
-                    country = clean_country(word)
+            country = country_map.get(country, country)
 
-                    summary = wikipedia.summary(f"Prime Minister of {country}", sentences=1)
-                    name = summary.split(" is ")[0]
+            summary = wikipedia.summary(f"Prime Minister of {country}", sentences=1)
 
-                    return f"🌍 Prime Minister of {country.title()} is {name}"
+            if " is " in summary:
+                name = summary.split(" is ")[0]
+            else:
+                name = summary.split(",")[0]
 
-        # President Detection
-        if "president" in words:
-            for word in words:
-                if word not in ["president", "of"]:
-                    country = clean_country(word)
+            return f"🌍 Prime Minister of {country.title()} is {name}"
 
-                    summary = wikipedia.summary(f"President of {country}", sentences=1)
-                    name = summary.split(" is ")[0]
+        # President
+        if "president" in text:
+            if "of" in text:
+                country = text.split("of")[-1].strip()
+            else:
+                country = text.split()[-1]
 
-                    return f"🌍 President of {country.title()} is {name}"
+            country = country_map.get(country, country)
 
-    except:
+            summary = wikipedia.summary(f"President of {country}", sentences=1)
+
+            if " is " in summary:
+                name = summary.split(" is ")[0]
+            else:
+                name = summary.split(",")[0]
+
+            return f"🌍 President of {country.title()} is {name}"
+
+    except Exception as e:
+        print("Leader Error:", e)
         return None
 
     return None
 
 
 # -------------------------
-# 🎉 FESTIVAL LOGIC
+# 🎉 FESTIVAL
 # -------------------------
 def get_festival_info(user_input):
     text = user_input.lower()
 
     if "diwali" in text:
         if "why" in text:
-            return "🪔 Diwali celebrates the return of Lord Rama to Ayodhya and the victory of light over darkness."
+            return "🪔 Diwali celebrates the return of Lord Rama and victory of light over darkness."
         if "when" in text:
             return "🎉 Diwali 2026 is on 8 November 2026"
 
     if "holi" in text:
         if "why" in text:
-            return "🌈 Holi celebrates the victory of Prahlad and the arrival of spring."
+            return "🌈 Holi celebrates Prahlad’s victory and arrival of spring."
         if "when" in text:
             return "🎉 Holi 2026 is on 3 March 2026"
 
@@ -125,10 +136,15 @@ def search_web(query):
 
 
 # -------------------------
-# 🧠 MAIN CHATBOT
+# 🧠 MAIN CHATBOT (IMPORTANT ORDER)
 # -------------------------
 def chatbot_response(user_input):
     text = user_input.lower()
+
+    # 🔥 TOP PRIORITY (VERY IMPORTANT)
+    leader = get_leader_info(user_input)
+    if leader:
+        return leader
 
     # Greeting
     if text in ["hi", "hello", "hey"]:
@@ -146,27 +162,22 @@ def chatbot_response(user_input):
     if "date" in text:
         return now.strftime("📅 %d-%m-%Y")
 
-    # 🌍 Leaders (TOP PRIORITY)
-    leader = get_leader_info(user_input)
-    if leader:
-        return leader
-
-    # 🌦 Weather
+    # Weather
     if "weather" in text:
         city = extract_city(user_input)
         return get_weather(city)
 
-    # 🎉 Festival
+    # Festival
     fest = get_festival_info(user_input)
     if fest:
         return fest
 
-    # 📚 Wikipedia
+    # Wikipedia
     wiki = get_wikipedia(user_input)
     if wiki:
         return wiki
 
-    # 🌐 Web search
+    # Web
     web = search_web(user_input)
     if web:
         return web
@@ -175,7 +186,7 @@ def chatbot_response(user_input):
 
 
 # -------------------------
-# 💬 CHAT UI
+# 💬 UI
 # -------------------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
